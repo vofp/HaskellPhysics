@@ -13,18 +13,20 @@ data Sphere = Sphere Name Position Velocity AccelFunc
 -- | Empty
 
 class Proj a where 
+    new      :: Name -> Position -> Velocity -> AccelFunc -> a
     getName  :: a -> String
     getPos   :: a -> Position
     getVelo  :: a -> Velocity
     getAccel :: a -> AccelFunc
 
 instance Proj Sphere where
+    new = Sphere
     getName (Sphere n _ _ _) = n
     getPos (Sphere _ p _ _) = p
     getVelo (Sphere _ _ v _) = v
     getAccel (Sphere _ _ _ f) = f
 
-data Env = Env Time [Sphere]
+data Env a = Env Time [a]
 
 type Velocity = (Double,Double,Double)
 type AccelVector = (Double,Double,Double)
@@ -38,7 +40,7 @@ type AccelFunc = Double -> AccelVector
 instance Show Sphere where
     show (Sphere n p v _) = "Sphere " ++ n ++ " " ++ show p ++ " " ++ show v
 
-instance Show Env where
+instance Show a => Show (Env a) where
     show (Env t a) = "Env " ++ show t ++ " " ++ show a
 
 instance Eq Sphere where
@@ -52,7 +54,7 @@ instance Ord Sphere where
     -- Empty            == _                   = LT
     -- _                == _                    = GT
 
-instance Eq Env where
+instance Ord a => Eq (Env a) where
     (Env t a) == (Env t2 a2) = t == t2 && sort a == sort a2
 
 
@@ -95,7 +97,7 @@ avg v = foldr (\(a,b,c) (x,y,z) -> (a/l+x,b/l+y,c/l+z)) (0,0,0) v
 -- 
 -- >>> stepTimeEnv 1 e1 == e2
 -- True
-stepTimeEnv :: Time -> Env -> Env
+stepTimeEnv :: Time -> Env Sphere -> Env Sphere
 stepTimeEnv st (Env t1 a) = Env t2 (map (stepTimeSphere t1 t2) a)
                           where t2 = t1 + st
 
@@ -119,12 +121,26 @@ stepPos t (px,py,pz) (vx,vy,vz) (ax,ay,az) = (px+vx*t+ax*t*t,py+vy*t+ay*t*t,pz+v
 -- >>> getObjName "Missing" e
 -- Nothing
 
-getObjName :: String -> Env -> Maybe Sphere
+getObjName :: Proj a => Name -> Env a -> Maybe a
 getObjName s (Env t a) = getObjNamelist s a
 
-getObjNamelist :: String -> [Sphere] -> Maybe Sphere
+getObjNamelist :: Proj a => Name -> [a] -> Maybe a
 getObjNamelist s []     = Nothing
-getObjNamelist s ((Sphere s2 p v f):xs)
-    | s == s2   = Just (Sphere s2 p v f)
+getObjNamelist s (x:xs)
+    | s == getName x   = Just x
     | otherwise = getObjNamelist s xs
 
+getInfoObj   :: Proj a => (a -> b) -> Name -> Env a -> Maybe b
+getInfoObj f n e = case (getObjName n e) of
+                    Nothing  -> Nothing
+                    (Just p) -> Just (f p)
+
+getPosObj   :: Proj a => Name -> Env a -> Maybe Position
+getPosObj = getInfoObj getPos
+
+getVeloObj  :: Proj a => Name -> Env a -> Maybe Velocity
+getVeloObj = getInfoObj getVelo
+
+
+getAccelObj :: Proj a => Name -> Env a -> Maybe AccelFunc
+getAccelObj = getInfoObj getAccel
