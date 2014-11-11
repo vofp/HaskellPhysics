@@ -1,27 +1,34 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module Physics where
 
 import Data.List
 
-type Name = String
-type Time = Double
-type Size = Double
-type Position = (Double,Double,Double)
-type Velocity = (Double,Double,Double)
-type AccelVector = (Double,Double,Double)
-type AccelFunc = Double -> AccelVector
+type AccelFunc    = Double -> AccelVector
+type AccelVector  = (Double,Double,Double)
+type LogType      = String
+type Name         = String
+type NormalVector = (Double,Double,Double)
+type Position     = (Double,Double,Double)
+type Size         = Double
+type Time         = Double
+type Velocity     = (Double,Double,Double)
 
-data Env a = Env Time [a]
+data Env a  = Env Time [a] 
+data Log    = LogColSS Time Sphere Sphere
+            | LogColSW Time Sphere Wall
 data Sphere = Sphere Name Size Position Velocity AccelFunc
+data Wall   = Wall Name Size Position NormalVector
 
-class Proj a where 
-    new       :: Name -> Size -> Position -> Velocity -> AccelFunc -> a
-    update    :: Position -> Velocity -> a -> a
-    getName   :: a -> Name
-    getSize   :: a -> Size
-    getPos    :: a -> Position
-    getVelo   :: a -> Velocity
-    getAccel  :: a -> AccelFunc
-    normalize :: a -> (Name, Size, Position, Velocity)
+class Object a where 
+    new        :: Name -> Size -> Position -> Velocity -> AccelFunc -> a
+    update     :: Position -> Velocity -> a -> a
+    getName    :: a -> Name
+    getSize    :: a -> Size
+    getPos     :: a -> Position
+    getVelo    :: a -> Velocity
+    getAccel   :: a -> AccelFunc
+    normalize  :: a -> (Name, Size, Position, Velocity)
 
     getObjName :: Name -> Env a -> Maybe a
     getObjName s (Env t a) = getObjNamelist s a
@@ -32,17 +39,17 @@ class Proj a where
         | s == getName x   = Just x
         | otherwise = getObjNamelist s xs
 
-    getInfoObj   :: (a -> b) -> Name -> Env a -> Maybe b
+    getInfoObj :: (a -> b) -> Name -> Env a -> Maybe b
     getInfoObj f n e = case (getObjName n e) of
                         Nothing  -> Nothing
                         (Just p) -> Just (f p)
 
-    getSizeObj   :: Name -> Env a -> Maybe Size
-    getSizeObj = getInfoObj getSize
+    getSizeObj  :: Name -> Env a -> Maybe Size
+    getSizeObj  = getInfoObj getSize
     getPosObj   :: Name -> Env a -> Maybe Position
-    getPosObj = getInfoObj getPos
+    getPosObj   = getInfoObj getPos
     getVeloObj  :: Name -> Env a -> Maybe Velocity
-    getVeloObj = getInfoObj getVelo
+    getVeloObj  = getInfoObj getVelo
     getAccelObj :: Name -> Env a -> Maybe AccelFunc
     getAccelObj = getInfoObj getAccel
 
@@ -57,7 +64,7 @@ class Proj a where
               newVelo    = (vx+ax*t,vy+ay*t,vz+az*t)
 
 
-instance Proj Sphere where
+instance Object Sphere where
     new = Sphere
     update p v (Sphere n s _ _ f) = (Sphere n s p v f)
     getName (Sphere n _ _ _ _) = n
@@ -67,8 +74,36 @@ instance Proj Sphere where
     getAccel (Sphere _ _ _ _ f) = f
     normalize (Sphere n s p v _) = (n, s, p, v)
 
-magnitude :: (Double,Double,Double) -> Double
-magnitude (x,y,z) = sqrt (x*x + y*y + z*z)
+instance Object Wall where
+    new  n s p v _ = Wall  n s p v
+    update p v (Wall n s _ _) = (Wall n s p v)
+    getName (Wall n _ _ _) = n
+    getSize (Wall _ s _ _) = s
+    getPos (Wall _ _ p _) = p
+    getVelo (Wall _ _ _ _) = (0.0,0.0,0.0)
+    getAccel (Wall _ _ _ _) = \x -> (0.0,0.0,0.0)
+    normalize (Wall n s p v) = (n, s, p, v)
+
+magnitude :: (Double,Double,Double) -> (Double,Double,Double) -> Double
+magnitude (a,b,c) (x,y,z) = sqrt (i*i + j*j + k*k)
+                                where i = x - a
+                                      j = y - b
+                                      k = z - c
+
+class Collision a b where
+    collision :: a -> b -> Bool
+
+-- | See if Collision happened between 2 spheres
+-- >>> collision (Sphere "Test" 1 (0,0,0) (0,0,0) gravityVelo) (Sphere "Test2" 1 (1,0,0) (0,0,0) gravityVelo)
+-- True
+-- 
+-- >>> collision (Sphere "Test" 1 (0,0,0) (0,0,0) gravityVelo) (Sphere "Test2" 1 (2,0,0) (0,0,0) gravityVelo)
+-- True
+-- 
+-- >>> collision (Sphere "Test" 1 (0,0,0) (0,0,0) gravityVelo) (Sphere "Test2" 1 (3,0,0) (0,0,0) gravityVelo)
+-- False
+instance Collision Sphere Sphere where
+    collision (Sphere _ s1 p1 _ _) (Sphere _ s2 p2 _ _) = magnitude p1 p2 <= s1 + s2
 
 -- | Showing the Sphere
 -- >>> Sphere "Test" 1 (0,0,0) (0,0,0) gravityVelo
@@ -83,8 +118,8 @@ instance Show a => Show (Env a) where
 instance Eq Sphere where
     (Sphere n1 s1 p1 v1 _) == (Sphere n2 s2 p2 v2 _) = n1 == n2 
                                                     && s1 == s2 
-                                                    && (magnitude p1) == (magnitude p2) 
-                                                    && (magnitude v1) == (magnitude v2)
+                                                    && (magnitude (0,0,0) p1) == (magnitude (0,0,0) p2) 
+                                                    && (magnitude (0,0,0) v1) == (magnitude (0,0,0) v2)
 
 instance Ord Sphere where
     compare (Sphere n1 s1 p1 v1 _) (Sphere n2 s2 p2 v2 _)
@@ -94,8 +129,8 @@ instance Ord Sphere where
             | otherwise                     = n  
         where n = compare n1 n2 
               s = compare s1 s2
-              p = compare (magnitude p1) (magnitude p2)
-              v = compare (magnitude v1) (magnitude v2) 
+              p = compare (magnitude (0,0,0) p1) (magnitude (0,0,0) p2)
+              v = compare (magnitude (0,0,0) v1) (magnitude (0,0,0) v2) 
 
 
 instance Ord a => Eq (Env a) where
@@ -139,7 +174,7 @@ avg v = foldr (\(a,b,c) (x,y,z) -> (a/l+x,b/l+y,c/l+z)) (0,0,0) v
 -- 
 -- >>> stepTimeEnv 1 e1 == e2
 -- True
-stepTimeEnv :: Proj a => Time -> Env a -> Env a
+stepTimeEnv :: Object a => Time -> Env a -> Env a
 stepTimeEnv st (Env t1 a) = Env t2 (map (stepTime t1 t2) a)
                           where t2 = t1 + st
 
