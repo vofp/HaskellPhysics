@@ -93,7 +93,7 @@ instance Object Sphere where
 
 instance Object Wall where
     -- new  n s p v _ = Wall  n s p v
-    update p v (Wall n s _ _) = (Wall n s p v)
+    update _ _ (Wall n s p v) = (Wall n s p v)
     getName (Wall n _ _ _) = n
     getSize (Wall _ s _ _) = s
     getPos (Wall _ _ p _) = p
@@ -144,6 +144,16 @@ instance Collision Wall Sphere where
 
 instance Show Sphere where
     show (Sphere n s p v _) = "Sphere " ++ n ++ " " ++ show s ++ " " ++ show p ++ " " ++ show v
+
+-- | Showing the Wall
+-- >>> Wall "Test" 1 (0,0,0) (0,0,0)
+-- Wall Test 1.0 (0.0,0.0,0.0) (0.0,0.0,0.0)
+instance Show Wall where
+    show (Wall n s p v ) = "Wall " ++ n ++ " " ++ show s ++ " " ++ show p ++ " " ++ show v
+
+instance Show Element where
+    show (Sp s) = show s 
+    show (Wa w) = show w 
 
 instance Show a => Show (Env a) where
     show (Env t a) = "Env " ++ show t ++ " " ++ show a
@@ -207,6 +217,13 @@ avg v = foldr (\(a,b,c) (x,y,z) -> (a/l+x,b/l+y,c/l+z)) (0,0,0) v
 -- 
 -- >>> stepTimeEnv 1 e1 == e2
 -- True
+-- 
+-- >>> let s2 = Sphere "Test2" 1 (2,0,0) (0,0,0) gravityVelo
+-- >>> let w = Wall "Test3" 1 (0,0,0) (1,0,0)
+-- >>> let e3 = Env 0 [(Sp s2),(Wa w)]
+-- >>> let e4 = stepTimeEnv 1 e3
+-- >>> e4
+-- Env 1.0 [Sphere Test2 1.0 (2.0,0.0,4.9) (0.0,0.0,9.8),Wall Test3 1.0 (0.0,0.0,0.0) (1.0,0.0,0.0)]
 stepTimeEnv :: Object a => Time -> Env a -> Env a
 stepTimeEnv st (Env t1 a) = Env t2 (map (stepTime t1 t2) a)
                           where t2 = t1 + st
