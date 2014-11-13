@@ -19,9 +19,11 @@ data Log    = LogColSS Time Sphere Sphere
             | LogColSW Time Sphere Wall
 data Sphere = Sphere Name Size Position Velocity AccelFunc
 data Wall   = Wall Name Size Position NormalVector
+data Element = Sp Sphere
+             | Wa Wall
 
 class Object a where 
-    new        :: Name -> Size -> Position -> Velocity -> AccelFunc -> a
+    -- new        :: Name -> Size -> Position -> Velocity -> AccelFunc -> a
     update     :: Position -> Velocity -> a -> a
     getName    :: a -> Name
     getSize    :: a -> Size
@@ -63,9 +65,24 @@ class Object a where
               newPos     = (px+vx*t+0.5*ax*t*t,py+vy*t+0.5*ay*t*t,pz+vz*t+0.5*az*t*t)
               newVelo    = (vx+ax*t,vy+ay*t,vz+az*t)
 
+instance Object Element where
+    getAccel (Sp s)   = getAccel s
+    getAccel (Wa s)   = getAccel s
+    getName (Sp s)    = getName s
+    getName (Wa s)    = getName s
+    getPos (Sp s)     = getPos s
+    getPos (Wa s)     = getPos s
+    getSize (Sp s)    = getSize s
+    getSize (Wa s)    = getSize s
+    getVelo (Sp s)    = getVelo s
+    getVelo (Wa s)    = getVelo s
+    normalize (Sp s)  = normalize s
+    normalize (Wa s)  = normalize s
+    update p v (Sp s) = Sp (update p v s)
+    update p v (Wa s) = Wa (update p v s)
 
 instance Object Sphere where
-    new = Sphere
+    -- new = Sphere
     update p v (Sphere n s _ _ f) = (Sphere n s p v f)
     getName (Sphere n _ _ _ _) = n
     getSize (Sphere _ s _ _ _) = s
@@ -75,7 +92,7 @@ instance Object Sphere where
     normalize (Sphere n s p v _) = (n, s, p, v)
 
 instance Object Wall where
-    new  n s p v _ = Wall  n s p v
+    -- new  n s p v _ = Wall  n s p v
     update p v (Wall n s _ _) = (Wall n s p v)
     getName (Wall n _ _ _) = n
     getSize (Wall _ s _ _) = s
