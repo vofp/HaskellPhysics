@@ -123,17 +123,20 @@ instance Collision Sphere Sphere where
     collision (Sphere _ s1 p1 _ _) (Sphere _ s2 p2 _ _) = magnitude p1 p2 <= s1 + s2
 
 -- | See if Collision happened between a sphere and wall
--- >>> collision (Sphere "Test" 1 (2,0,0) (0,0,0) gravityVelo) (Wall "Test2" 1 (0,0,0) (1,0,0) gravityVelo)
--- True
--- 
--- >>> collision (Sphere "Test" 1 (2,0,0) (0,0,0) gravityVelo) (Wall "Test2" 1 (0,0,0) (0,1,0) gravityVelo)
--- True
--- 
--- >>> collision (Sphere "Test" 1 (2,0,0) (0,0,0) gravityVelo) (Wall "Test2" 1 (0,0,0) (0,0,1) gravityVelo)
+-- >>> collision (Sphere "Test" 1 (2,0,0) (0,0,0) gravityVelo) (Wall "Test2" 1 (0,0,0) (1,0,0))
 -- False
+-- 
+-- >>> collision (Sphere "Test" 1 (2,0,0) (0,0,0) gravityVelo) (Wall "Test2" 1 (0,0,0) (0,1,0))
+-- True
+-- 
+-- >>> collision (Sphere "Test" 1 (2,0,0) (0,0,0) gravityVelo) (Wall "Test2" 1 (0,0,0) (0,0,1))
+-- True
 instance Collision Sphere Wall where
-    collision (Sphere _ s1 (x,y,z) _ _) (Wall _ _ (x0,y0,z0) (a,b,c) _) =  (a*x+b*y+c*z+d)/sqrt(a*a+b*b+c*c) <= s1
+    collision (Sphere _ s1 (x,y,z) _ _) (Wall _ _ (x0,y0,z0) (a,b,c)) =  (a*x+b*y+c*z+d)/sqrt(a*a+b*b+c*c) <= s1
         where d = -(a*x0+b*y0+c*z0)
+
+instance Collision Wall Sphere where
+    collision w s = collision s w
 
 -- | Showing the Sphere
 -- >>> Sphere "Test" 1 (0,0,0) (0,0,0) gravityVelo
