@@ -5,6 +5,7 @@ module Physics where
 import Data.List
 
 type AccelFunc    = Double -> AccelVector
+type Vector       = (Double,Double,Double)
 type AccelVector  = (Double,Double,Double)
 type LogType      = String
 type Name         = String
@@ -137,6 +138,24 @@ instance Collision Sphere Wall where
 
 instance Collision Wall Sphere where
     collision w s = collision s w
+
+class Combine a where
+    simpleCombine :: a -> a -> a
+
+instance Combine Env where
+    simpleCombine (Env _ a1) (Env _ a2) = Env 0 (a1++a2)
+
+instance Combine Sphere where
+    simpleCombine (Sphere n1 s1 p1 v1 f1) (Sphere n2 s2 p2 v2 f2) = Sphere n s p v f
+        where n = n1 ++ n2
+              s = (s1+s2)/2
+              p = simpleCombine p1 p2
+              v = simpleCombine v1 v2
+              f = (\x -> simpleCombine (f1 x) (f2 x))
+
+
+instance Combine Vector where
+    simpleCombine (a,b,c) (x,y,z) = ((a+x)/2,(b+y)/2,(c+z)/2)
 
 -- | Showing the Sphere
 -- >>> Sphere "Test" 1 (0,0,0) (0,0,0) gravityVelo
