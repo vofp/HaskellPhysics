@@ -2,19 +2,21 @@
 
 module Physics where
 
-import Data.List
+import Data.List 
+import qualified Data.Vec as Vec (normalize)
+import Data.Vec.Base hiding (foldr,length,map)
 
 type AccelFunc    = Double -> AccelVector
 type Setting      = Element -> AccelFunc
 type Vector       = (Double,Double,Double)
-type AccelVector  = (Double,Double,Double)
+type AccelVector  = Vector
 type LogType      = String
 type Name         = String
-type NormalVector = (Double,Double,Double)
-type Position     = (Double,Double,Double)
+type NormalVector = Vector
+type Position     = Vector
 type Size         = Double
 type Time         = Double
-type Velocity     = (Double,Double,Double)
+type Velocity     = Vector
 
 data Env a  = Env Time [a] [Setting]
 data Log    = LogColSS Time Sphere Sphere
@@ -125,7 +127,7 @@ instance Object Wall where
               newPos     = stepPos t (px,py,pz) (vx,vy,vz) (ax,ay,az)
               newVelo    = (vx+ax*t,vy+ay*t,vz+az*t)
 
-magnitude :: (Double,Double,Double) -> (Double,Double,Double) -> Double
+magnitude :: Vector -> Vector -> Double
 magnitude (a,b,c) (x,y,z) = sqrt (i*i + j*j + k*k)
                                 where i = x - a
                                       j = y - b
@@ -201,7 +203,7 @@ instance Combine Sphere where
 -- >>> let t = 1.0
 -- >>> simpleCombine (foldr simpleCombine (0,0,0) [g p t | g <- s]) a
 -- (0.0,0.0,9.8)
-instance Combine Vector where
+instance Combine (Vector) where
     simpleCombine (a,b,c) (x,y,z) = (a+x,b+y,c+z)
 
 -- | Showing the Sphere
