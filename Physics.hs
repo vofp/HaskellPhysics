@@ -8,7 +8,7 @@ import Data.Vec.Base hiding (foldr,length,map)
 
 type AccelFunc    = Double -> AccelVector
 type Setting      = Element -> AccelFunc
-type Vector       = (Double,Double,Double)
+type Vector       = Vec3 Double
 type AccelVector  = Vector
 type LogType      = String
 type Name         = String
@@ -304,7 +304,7 @@ stepTimeEnv st (Env t1 a f) = Env t2 (map (stepTime t1 t2 f) a) f
                           where t2 = t1 + st
 
 stepPos :: Time -> Position -> Velocity -> AccelVector -> Position
-stepPos t (px,py,pz) (vx,vy,vz) (ax,ay,az) = (px+vx*t+0.5*ax*t*t,py+vy*t+0.5*ay*t*t,pz+vz*t+0.5*az*t*t)
+stepPos t (:.px:.ps) (:. vx vy vz) (:. ax,ay,az) = (:. px+vx*t+0.5*ax*t*t:.py+vy*t+0.5*ay*t*t:.pz+vz*t+0.5*az*t*t)
 
 -- | Get an Sphere from an Env
 -- >>> let s = Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo
