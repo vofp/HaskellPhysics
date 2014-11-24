@@ -133,6 +133,8 @@ magnitude (a,b,c) (x,y,z) = sqrt (i*i + j*j + k*k)
 
 class Collision a b where
     collision :: a -> b -> Bool
+    bounce :: a -> b -> (a,b)
+    bounce a b = (a,b)
 
 -- | See if Collision happened between 2 spheres
 -- >>> collision (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo) (Sphere "Test2" 1 (1,0,0) (0,0,0) nothingVelo)
@@ -143,8 +145,23 @@ class Collision a b where
 -- 
 -- >>> collision (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo) (Sphere "Test2" 1 (3,0,0) (0,0,0) nothingVelo)
 -- False
+--
+-- >>> bounce (Sphere "Test" 1 (0,0,0) (1,0,0) nothingVelo) (Sphere "Test2" 1 (2,0,0) (-1,0,0) nothingVelo)
+-- (Sphere Test 1.0 (0.0,0.0,0.0) (-1.0,0.0,0.0),Sphere Test2 1.0 (2.0,0.0,0.0) (1.0,0.0,0.0))
+--
 instance Collision Sphere Sphere where
     collision (Sphere _ s1 p1 _ _) (Sphere _ s2 p2 _ _) = magnitude p1 p2 <= s1 + s2
+    bounce (Sphere n1 s1 p1 (x1,y1,z1) f1) (Sphere n2 s2 p2 (x2,y2,z2) f2) = (newS1, newS2)
+        where m1    = 4.0/3.0*pi*s1*s1*s1
+              m2    = 4.0/3.0*pi*s2*s2*s2
+              nx1   = (x1*(m1-m2) + (2*m2*x2))/(m1+m2)
+              ny1   = (y1*(m1-m2) + (2*m2*y2))/(m1+m2)
+              nz1   = (z1*(m1-m2) + (2*m2*z2))/(m1+m2)
+              nx2   = (x2*(m2-m1) + (2*m1*x1))/(m1+m2)
+              ny2   = (y2*(m2-m1) + (2*m1*y1))/(m1+m2)
+              nz2   = (z2*(m2-m1) + (2*m1*z1))/(m1+m2)
+              newS1 = Sphere n1 s1 p1 (nx1,ny1,nz1) f1
+              newS2 = Sphere n2 s2 p2 (nx2,ny2,nz2) f2
 
 -- | See if Collision happened between a sphere and wall
 -- >>> collision (Sphere "Test" 1 (2,0,0) (0,0,0) nothingVelo) (Wall "Test2" 1 (0,0,0) (1,0,0))
@@ -161,6 +178,7 @@ instance Collision Sphere Wall where
 
 instance Collision Wall Sphere where
     collision w s = collision s w
+
 
 class Combine a where
     simpleCombine :: a -> a -> a
