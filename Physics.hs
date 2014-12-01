@@ -3,8 +3,9 @@
 module Physics where
 
 import Data.List 
-import qualified Data.Vec as Vec (normalize)
-import Data.Vec.Base hiding (foldr,length,map)
+import Data.Maybe 
+-- import qualified Data.Vec as Vec (normalize)
+-- import Data.Vec.Base hiding (foldr,length,map)
 
 type AccelFunc    = Double -> AccelVector
 type Setting      = Element -> AccelFunc
@@ -136,13 +137,21 @@ magnitude (a,b,c) (x,y,z) = sqrt (i*i + j*j + k*k)
 class Collision a b where
     collision :: a -> b -> Bool
     bounce :: a -> b -> (a,b)
-    bounce a b = (a,b)
 
 instance Collision Element Element where
     collision (Sp s1) (Sp s2) = collision s1 s2
     collision (Sp s1) (Wa w2) = collision s1 w2
     collision (Wa w1) (Sp s2) = collision s2 w1
     collision (Wa w1) (Wa w2) = collision w1 w2
+
+    bounce (Sp s1) (Sp s2) = (Sp n1, Sp n2)
+      where (n1, n2) = bounce s1 s2
+    bounce (Sp s1) (Wa w2) = (Sp n1, Wa n2)
+      where (n1, n2) = bounce s1 w2
+    bounce (Wa w1) (Sp s2) = (Wa n2, Sp n1)
+      where (n1, n2) = bounce s2 w1
+    bounce (Wa w1) (Wa w2) = (Wa n1, Wa n2)
+      where (n1, n2) = bounce w1 w2
 
 
 -- | See if Collision happened between 2 spheres
@@ -155,22 +164,34 @@ instance Collision Element Element where
 -- >>> collision (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo) (Sphere "Test2" 1 (3,0,0) (0,0,0) nothingVelo)
 -- False
 --
--- >>> bounce (Sphere "Test" 1 (0,0,0) (1,0,0) nothingVelo) (Sphere "Test2" 1 (2,0,0) (-1,0,0) nothingVelo)
--- (Sphere Test 1.0 (0.0,0.0,0.0) (-1.0,0.0,0.0),Sphere Test2 1.0 (2.0,0.0,0.0) (1.0,0.0,0.0))
+-- >>> bounce (Sphere "Test" 1 (0,0,0) (1,1,1) nothingVelo) (Sphere "Test2" 1 (2,0,0) (-1,-1,-1) nothingVelo)
+-- (Sphere Test 1.0 (0.0,0.0,0.0) (-1.0,-1.0,-1.0),Sphere Test2 1.0 (2.0,0.0,0.0) (1.0,1.0,1.0))
+--
+-- >>> bounce (Sp (Sphere "Test" 1 (0,0,0) (1,1,1) nothingVelo)) (Sp (Sphere "Test2" 1 (2,0,0) (-1,-1,-1) nothingVelo))
+-- (Sphere Test 1.0 (0.0,0.0,0.0) (-1.0,-1.0,-1.0),Sphere Test2 1.0 (2.0,0.0,0.0) (1.0,1.0,1.0))
 --
 instance Collision Sphere Sphere where
     collision (Sphere _ s1 p1 _ _) (Sphere _ s2 p2 _ _) = magnitude p1 p2 <= s1 + s2
     bounce (Sphere n1 s1 p1 (x1,y1,z1) f1) (Sphere n2 s2 p2 (x2,y2,z2) f2) = (newS1, newS2)
-        where m1    = 4.0/3.0*pi*s1*s1*s1
-              m2    = 4.0/3.0*pi*s2*s2*s2
-              nx1   = (x1*(m1-m2) + (2*m2*x2))/(m1+m2)
-              ny1   = (y1*(m1-m2) + (2*m2*y2))/(m1+m2)
-              nz1   = (z1*(m1-m2) + (2*m2*z2))/(m1+m2)
-              nx2   = (x2*(m2-m1) + (2*m1*x1))/(m1+m2)
-              ny2   = (y2*(m2-m1) + (2*m1*y1))/(m1+m2)
-              nz2   = (z2*(m2-m1) + (2*m1*z1))/(m1+m2)
+        where nx1   = -x1
+              ny1   = -y1
+              nz1   = -z1
+              nx2   = -x2
+              ny2   = -y2
+              nz2   = -z2
               newS1 = Sphere n1 s1 p1 (nx1,ny1,nz1) f1
               newS2 = Sphere n2 s2 p2 (nx2,ny2,nz2) f2
+
+        -- where m1    = 4.0/3.0*pi*s1*s1*s1
+        --       m2    = 4.0/3.0*pi*s2*s2*s2
+        --       nx1   = (x1*(m1-m2) + (2*m2*x2))/(m1+m2)
+        --       ny1   = (y1*(m1-m2) + (2*m2*y2))/(m1+m2)
+        --       nz1   = (z1*(m1-m2) + (2*m2*z2))/(m1+m2)
+        --       nx2   = (x2*(m2-m1) + (2*m1*x1))/(m1+m2)
+        --       ny2   = (y2*(m2-m1) + (2*m1*y1))/(m1+m2)
+        --       nz2   = (z2*(m2-m1) + (2*m1*z1))/(m1+m2)
+        --       newS1 = Sphere n1 s1 p1 (nx1,ny1,nz1) f1
+        --       newS2 = Sphere n2 s2 p2 (nx2,ny2,nz2) f2
 
 -- | See if Collision happened between a sphere and wall
 -- >>> collision (Sphere "Test" 1 (2,0,0) (0,0,0) nothingVelo) (Wall "Test2" 1 (0,0,0) (1,0,0))
@@ -184,12 +205,15 @@ instance Collision Sphere Sphere where
 instance Collision Sphere Wall where
     collision (Sphere _ s1 (x,y,z) _ _) (Wall _ _ (x0,y0,z0) (a,b,c)) =  (a*x+b*y+c*z+d)/sqrt(a*a+b*b+c*c) <= s1
         where d = -(a*x0+b*y0+c*z0)
+    bounce a b = (a,b)
 
 instance Collision Wall Sphere where
     collision w s = collision s w
+    bounce a b = (a,b)
 
 instance Collision Wall Wall where
     collision _ _ = False
+    bounce a b = (a,b)
 
 
 class Combine a where
@@ -351,13 +375,81 @@ stepsTimeEnv n t e = stepsTimeEnv (n-1) t e2
 -- >>> detectCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (3,0,0) (0,0,0) nothingVelo)]
 -- False
 -- 
--- >>> detectCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (15,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (2,0,0) (0,0,0) nothingVelo)]
+-- >>> detectCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (15,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)]
 -- True
 -- 
--- >>> detectCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (15,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (5,0,0) (0,0,0) nothingVelo)]
+-- >>> detectCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (15,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test3" 1 (5,0,0) (0,0,0) nothingVelo)]
 -- False
 detectCollisions :: (Collision a a, Eq a) => [a] -> Bool
 detectCollisions a = foldr (||) False [collision e1 e2 | e1 <- a, e2 <- a, e1 /= e2]
+
+-- | list all collisions
+-- >>> listCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (1,0,0) (0,0,0) nothingVelo)]
+-- [("Test","Test2")]
+-- 
+-- >>> listCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (2,0,0) (0,0,0) nothingVelo)]
+-- [("Test","Test2")]
+-- 
+-- >>> listCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (3,0,0) (0,0,0) nothingVelo)]
+-- []
+-- 
+-- >>> listCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (15,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)]
+-- [("Test","Test3")]
+-- 
+-- >>> listCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (15,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test3" 1 (5,0,0) (0,0,0) nothingVelo)]
+-- []
+-- 
+-- >>> listCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 1 (-1,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)]
+-- [("Test","Test2"),("Test","Test3")]
+-- 
+-- >>> listCollisions [Sp (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test2" 5 (-1,0,0) (0,0,0) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)]
+-- [("Test","Test2"),("Test","Test3"),("Test2","Test3")]
+--
+listCollisions :: (Collision a a, Eq a, Object a) => [a] -> [(String, String)]
+listCollisions a = [(s1, s2)| e1 <- a, e2 <- a, e1 /= e2, collision e1 e2, let s1 = getName e1, let s2 = getName e2, s1 < s2 ]
+
+-- | resolve all collisions
+-- >>> resolveCollisions (Env 0 [Sp (Sphere "Test" 1 (0,0,0) (1,1,1) nothingVelo), Sp (Sphere "Test2" 1 (-1,0,0) (2,2,2) nothingVelo), Sp (Sphere "Test3" 1 (5,0,0) (0,0,0) nothingVelo)] [])
+-- Env 0.0 [Sphere Test3 1.0 (5.0,0.0,0.0) (0.0,0.0,0.0),Sphere Test2 1.0 (-1.0,0.0,0.0) (-2.0,-2.0,-2.0),Sphere Test 1.0 (0.0,0.0,0.0) (-1.0,-1.0,-1.0)]
+-- 
+-- >>> let a = [Sp (Sphere "Test" 1 (0,0,0) (1,1,1) nothingVelo), Sp (Sphere "Test2" 1 (-1,0,0) (2,2,2) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)]
+-- >>> let e = (Env 0 a [])
+-- >>> listCollisions a
+-- [("Test","Test2"),("Test","Test3")]
+-- >>> resolveCollisions e
+-- Env 0.0 [Sphere Test2 1.0 (-1.0,0.0,0.0) (-2.0,-2.0,-2.0),Sphere Test3 1.0 (2.0,0.0,0.0) (-0.0,-0.0,-0.0),Sphere Test 1.0 (0.0,0.0,0.0) (1.0,1.0,1.0)]
+-- 
+resolveCollisions :: (Collision a a, Eq a, Object a) => Env a -> Env a
+resolveCollisions (Env t a f) = (Env t a2 f)
+  where c  = listCollisions a
+        a2 = foldl (resolveCollision) a c
+
+deleteAll :: Object a => [String] -> [a] -> [a]
+deleteAll d a = dropWhile (\x -> elem (getName x) d) a
+
+-- | Resolve a Collision
+-- >>> let a = resolveCollision [Sp (Sphere "Test" 1 (0,0,0) (1,1,1) nothingVelo), Sp (Sphere "Test2" 1 (-1,0,0) (2,2,2) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)] ("Test","Test2")
+-- >>> a
+-- [Sphere Test3 1.0 (2.0,0.0,0.0) (0.0,0.0,0.0),Sphere Test2 1.0 (-1.0,0.0,0.0) (-2.0,-2.0,-2.0),Sphere Test 1.0 (0.0,0.0,0.0) (-1.0,-1.0,-1.0)]
+-- 
+-- >>> resolveCollision a ("Test","Test3")
+-- [Sphere Test2 1.0 (-1.0,0.0,0.0) (-2.0,-2.0,-2.0),Sphere Test3 1.0 (2.0,0.0,0.0) (-0.0,-0.0,-0.0),Sphere Test 1.0 (0.0,0.0,0.0) (1.0,1.0,1.0)] 
+resolveCollision :: (Collision a a, Object a) => [a] -> (String, String) -> [a]
+resolveCollision a (s1,s2) = a2
+  where o1      = fromJust $ getObjNamelist s1 a
+        o2      = fromJust $ getObjNamelist s2 a
+        (n1,n2) = bounce o1 o2
+        a2 = addObject n1 $ addObject n2 a
+        -- a1      = deleteAll ([s1,s2]) a
+  -- where (a1,a2) = span (\x -> elem (getName x) [s1,s2]) a
+  --       xs = tail a1
+  --       (n1,n2) = bounce (head a1) (head xs)  
+
+addObject :: Object a => a -> [a] -> [a]
+addObject n []     = [n]
+addObject n (x:xs) | (getName n) == (getName x) = addObject n xs
+                   | otherwise                  = x:(addObject n xs)
+
 
 stepPos :: Time -> Position -> Velocity -> AccelVector -> Position
 stepPos t (px,py,pz) (vx,vy,vz) (ax,ay,az) = (px+vx*t+0.5*ax*t*t,py+vy*t+0.5*ay*t*t,pz+vz*t+0.5*az*t*t)
@@ -370,3 +462,4 @@ stepPos t (px,py,pz) (vx,vy,vz) (ax,ay,az) = (px+vx*t+0.5*ax*t*t,py+vy*t+0.5*ay*
 -- 
 -- >>> getObjName "Missing" e
 -- Nothing
+
