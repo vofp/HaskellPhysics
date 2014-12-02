@@ -3,9 +3,7 @@
 module Physics where
 
 import Data.List 
-import Data.Maybe 
--- import qualified Data.Vec as Vec (normalize)
--- import Data.Vec.Base hiding (foldr,length,map)
+import Data.Maybe
 
 type AccelFunc    = Double -> AccelVector
 type Setting      = Element -> AccelFunc
@@ -28,7 +26,10 @@ data Element = Sp Sphere
              | Wa Wall
 
 class Object a where 
+    -- | update the Position and Velocity
     update     :: Position -> Velocity -> a -> a
+
+    -- | Grab Info about the object
     getName    :: a -> Name
     getSize    :: a -> Size
     getPos     :: a -> Position
@@ -36,20 +37,22 @@ class Object a where
     getAccel   :: a -> AccelFunc
     normalize  :: a -> (Name, Size, Position, Velocity)
 
+    -- | Pull Object out of Env by name
     getObjName :: Name -> Env a -> Maybe a
     getObjName s (Env t a _) = getObjNamelist s a
 
+    -- | Pull Object out of list by name
     getObjNamelist :: Name -> [a] -> Maybe a
     getObjNamelist s []     = Nothing
     getObjNamelist s (x:xs)
         | s == getName x = Just x
         | otherwise      = getObjNamelist s xs
 
+    -- | Get info about an object in Env
     getInfoObj :: (a -> b) -> Name -> Env a -> Maybe b
     getInfoObj f n e = case (getObjName n e) of
                         Nothing  -> Nothing
                         (Just p) -> Just (f p)
-
     getSizeObj  :: Name -> Env a -> Maybe Size
     getSizeObj  = getInfoObj getSize
     getPosObj   :: Name -> Env a -> Maybe Position
@@ -59,6 +62,7 @@ class Object a where
     getAccelObj :: Name -> Env a -> Maybe AccelFunc
     getAccelObj = getInfoObj getAccel
 
+    -- | Progress Time for an object
     stepTime :: Time -> Time -> [Setting] -> a -> a
 
 instance Object Element where
@@ -127,6 +131,7 @@ instance Object Wall where
               newPos     = stepPos t (px,py,pz) (vx,vy,vz) (ax,ay,az)
               newVelo    = (vx+ax*t,vy+ay*t,vz+az*t)
 
+-- | Find distance between two points
 magnitude :: Vector -> Vector -> Double
 magnitude (a,b,c) (x,y,z) = sqrt (i*i + j*j + k*k)
                                 where i = x - a
@@ -134,7 +139,9 @@ magnitude (a,b,c) (x,y,z) = sqrt (i*i + j*j + k*k)
                                       k = z - c
 
 class Collision a b where
+    -- | Checks if there is a collision between 2 objects
     collision :: a -> b -> Bool
+    -- | Resolve the collision between 2 objects
     bounce :: a -> b -> (a,b)
 
 instance Collision Element Element where
@@ -169,26 +176,6 @@ instance Collision Sphere Sphere where
               nz2        = -z2
               newS1      = update p1 (nx1,ny1,nz1) s1
               newS2      = update p2 (nx2,ny2,nz2) s2
-    -- bounce (Sphere n1 s1 p1 (x1,y1,z1) f1) (Sphere n2 s2 p2 (x2,y2,z2) f2) = (newS1, newS2)
-    --     where nx1   = -x1
-    --           ny1   = -y1
-    --           nz1   = -z1
-    --           nx2   = -x2
-    --           ny2   = -y2
-    --           nz2   = -z2
-    --           newS1 = Sphere n1 s1 p1 (nx1,ny1,nz1) f1
-    --           newS2 = Sphere n2 s2 p2 (nx2,ny2,nz2) f2
-
-        -- where m1    = 4.0/3.0*pi*s1*s1*s1
-        --       m2    = 4.0/3.0*pi*s2*s2*s2
-        --       nx1   = (x1*(m1-m2) + (2*m2*x2))/(m1+m2)
-        --       ny1   = (y1*(m1-m2) + (2*m2*y2))/(m1+m2)
-        --       nz1   = (z1*(m1-m2) + (2*m2*z2))/(m1+m2)
-        --       nx2   = (x2*(m2-m1) + (2*m1*x1))/(m1+m2)
-        --       ny2   = (y2*(m2-m1) + (2*m1*y1))/(m1+m2)
-        --       nz2   = (z2*(m2-m1) + (2*m1*z1))/(m1+m2)
-        --       newS1 = Sphere n1 s1 p1 (nx1,ny1,nz1) f1
-        --       newS2 = Sphere n2 s2 p2 (nx2,ny2,nz2) f2
 
 -- | See if Collision happened between a sphere and wall
 instance Collision Sphere Wall where
@@ -206,6 +193,7 @@ instance Collision Wall Wall where
 
 
 class Combine a where
+    -- | Combine 2 Objects
     simpleCombine :: a -> a -> a
 
 instance Combine (Env a) where
@@ -317,26 +305,20 @@ resolveCollisions (Env t a f) = (Env t a2 f)
   where c  = listCollisions a
         a2 = foldl (resolveCollision) a c
 
-deleteAll :: Object a => [String] -> [a] -> [a]
-deleteAll d a = dropWhile (\x -> elem (getName x) d) a
-
 -- | Resolve a Collision
 resolveCollision :: (Collision a a, Object a) => [a] -> (String, String) -> [a]
 resolveCollision a (s1,s2) = a2
   where o1      = fromJust $ getObjNamelist s1 a
         o2      = fromJust $ getObjNamelist s2 a
         (n1,n2) = bounce o1 o2
-        a2 = addObject n1 $ addObject n2 a
-        -- a1      = deleteAll ([s1,s2]) a
-  -- where (a1,a2) = span (\x -> elem (getName x) [s1,s2]) a
-  --       xs = tail a1
-  --       (n1,n2) = bounce (head a1) (head xs)  
+        a2 = replaceObj n1 $ replaceObj n2 a
 
-addObject :: Object a => a -> [a] -> [a]
-addObject n []     = [n]
-addObject n (x:xs) | (getName n) == (getName x) = addObject n xs
-                   | otherwise                  = x:(addObject n xs)
+-- | Adds object to an array but removes old version
+replaceObj :: Object a => a -> [a] -> [a]
+replaceObj n []     = [n]
+replaceObj n (x:xs) | (getName n) == (getName x) = replaceObj n xs
+                   | otherwise                  = x:(replaceObj n xs)
 
-
+-- | uses Time, Position, Velocity, and acceleration to figure out new location
 stepPos :: Time -> Position -> Velocity -> AccelVector -> Position
 stepPos t (px,py,pz) (vx,vy,vz) (ax,ay,az) = (px+vx*t+0.5*ax*t*t,py+vy*t+0.5*ay*t*t,pz+vz*t+0.5*az*t*t)
