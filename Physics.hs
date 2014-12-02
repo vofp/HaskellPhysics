@@ -156,15 +156,28 @@ instance Collision Element Element where
 -- | See if Collision happened between 2 spheres
 instance Collision Sphere Sphere where
     collision (Sphere _ s1 p1 _ _) (Sphere _ s2 p2 _ _) = magnitude p1 p2 <= s1 + s2
-    bounce (Sphere n1 s1 p1 (x1,y1,z1) f1) (Sphere n2 s2 p2 (x2,y2,z2) f2) = (newS1, newS2)
-        where nx1   = -x1
-              ny1   = -y1
-              nz1   = -z1
-              nx2   = -x2
-              ny2   = -y2
-              nz2   = -z2
-              newS1 = Sphere n1 s1 p1 (nx1,ny1,nz1) f1
-              newS2 = Sphere n2 s2 p2 (nx2,ny2,nz2) f2
+    bounce s1 s2 = (newS1, newS2)
+        where p1         = getPos s1
+              (x1,y1,z1) = getVelo s1
+              p2         = getPos s2
+              (x2,y2,z2) = getVelo s2
+              nx1        = -x1
+              ny1        = -y1
+              nz1        = -z1
+              nx2        = -x2
+              ny2        = -y2
+              nz2        = -z2
+              newS1      = update p1 (nx1,ny1,nz1) s1
+              newS2      = update p2 (nx2,ny2,nz2) s2
+    -- bounce (Sphere n1 s1 p1 (x1,y1,z1) f1) (Sphere n2 s2 p2 (x2,y2,z2) f2) = (newS1, newS2)
+    --     where nx1   = -x1
+    --           ny1   = -y1
+    --           nz1   = -z1
+    --           nx2   = -x2
+    --           ny2   = -y2
+    --           nz2   = -z2
+    --           newS1 = Sphere n1 s1 p1 (nx1,ny1,nz1) f1
+    --           newS2 = Sphere n2 s2 p2 (nx2,ny2,nz2) f2
 
         -- where m1    = 4.0/3.0*pi*s1*s1*s1
         --       m2    = 4.0/3.0*pi*s2*s2*s2
