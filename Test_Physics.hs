@@ -16,12 +16,15 @@ import Physics
 -- >>> collision (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo) (Sphere "Test2" 1 (3,0,0) (0,0,0) nothingVelo)
 -- False
 --
--- >>> bounce (Sphere "Test" 1 (0,0,0) (1,1,1) nothingVelo) (Sphere "Test2" 1 (2,0,0) (-1,-1,-1) nothingVelo)
--- (Sphere Test 1.0 (0.0,0.0,0.0) (-1.0,-1.0,-1.0),Sphere Test2 1.0 (2.0,0.0,0.0) (1.0,1.0,1.0))
+-- >>> bounce (Sphere "Test" 1 (1,3,0) (0,-1,0) nothingVelo) (Sphere "Test2" 1 (1,1,0) (0,1,0) nothingVelo)
+-- (Sphere Test 1.0 (1.0,3.0,0.0) (0.0,1.0,0.0),Sphere Test2 1.0 (1.0,1.0,0.0) (0.0,-1.0,0.0))
 --
--- >>> bounce (Sp (Sphere "Test" 1 (0,0,0) (1,1,1) nothingVelo)) (Sp (Sphere "Test2" 1 (2,0,0) (-1,-1,-1) nothingVelo))
--- (Sphere Test 1.0 (0.0,0.0,0.0) (-1.0,-1.0,-1.0),Sphere Test2 1.0 (2.0,0.0,0.0) (1.0,1.0,1.0))
-
+-- >>> bounce (Sphere "Test" 1 (2,0,0) (-1,0,0) nothingVelo) (Sphere "Test2" 1 (0,0,0) (1,0,0) nothingVelo)
+-- (Sphere Test 1.0 (2.0,0.0,0.0) (1.0,0.0,0.0),Sphere Test2 1.0 (0.0,0.0,0.0) (-1.0,0.0,0.0))
+--
+-- >>> bounce (Sphere "Test" 1 (0,0,2) (0,0,-1) nothingVelo) (Sphere "Test2" 1 (0,0,0) (0,0,1) nothingVelo)
+-- (Sphere Test 1.0 (0.0,0.0,2.0) (0.0,0.0,1.0),Sphere Test2 1.0 (0.0,0.0,0.0) (0.0,0.0,-1.0))
+--
 
 -- | See if Collision happened between a sphere and wall
 -- >>> collision (Sphere "Test" 1 (2,0,0) (0,0,0) nothingVelo) (Wall "Test2" 1 (0,0,0) (1,0,0))
@@ -143,24 +146,24 @@ import Physics
 --
 
 -- | resolve all collisions
--- >>> resolveCollisions (Env 0 [Sp (Sphere "Test" 1 (0,0,0) (1,1,1) nothingVelo), Sp (Sphere "Test2" 1 (-1,0,0) (2,2,2) nothingVelo), Sp (Sphere "Test3" 1 (5,0,0) (0,0,0) nothingVelo)] [])
--- Env 0.0 [Sphere Test3 1.0 (5.0,0.0,0.0) (0.0,0.0,0.0),Sphere Test2 1.0 (-1.0,0.0,0.0) (-2.0,-2.0,-2.0),Sphere Test 1.0 (0.0,0.0,0.0) (-1.0,-1.0,-1.0)]
+-- >>> resolveCollisions (Env 0 [Sp (Sphere "Test" 1 (0,0,0) (-1,0,0) nothingVelo), Sp (Sphere "Test2" 1 (-2,0,0) (1,0,0) nothingVelo), Sp (Sphere "Test3" 1 (5,0,0) (0,0,0) nothingVelo)] [])
+-- Env 0.0 [Sphere Test3 1.0 (5.0,0.0,0.0) (0.0,0.0,0.0),Sphere Test2 1.0 (-2.0,0.0,0.0) (-1.0,0.0,0.0),Sphere Test 1.0 (0.0,0.0,0.0) (1.0,0.0,0.0)]
 -- 
--- >>> let a = [Sp (Sphere "Test" 1 (0,0,0) (1,1,1) nothingVelo), Sp (Sphere "Test2" 1 (-1,0,0) (2,2,2) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)]
+-- >>> let a = [Sp (Sphere "Test" 1 (0,0,0) (1,0,0) nothingVelo), Sp (Sphere "Test2" 1 (-2,0,0) (2,0,0) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)]
 -- >>> let e = (Env 0 a [])
 -- >>> listCollisions a
 -- [("Test","Test2"),("Test","Test3")]
 -- >>> resolveCollisions e
--- Env 0.0 [Sphere Test2 1.0 (-1.0,0.0,0.0) (-2.0,-2.0,-2.0),Sphere Test3 1.0 (2.0,0.0,0.0) (-0.0,-0.0,-0.0),Sphere Test 1.0 (0.0,0.0,0.0) (1.0,1.0,1.0)]
+-- Env 0.0 [Sphere Test2 1.0 (-2.0,0.0,0.0) (1.0,0.0,0.0),Sphere Test3 1.0 (2.0,0.0,0.0) (2.0,0.0,0.0),Sphere Test 1.0 (0.0,0.0,0.0) (0.0,0.0,0.0)]
 -- 
 
 -- | Resolve a Collision
--- >>> let a = resolveCollision [Sp (Sphere "Test" 1 (0,0,0) (1,1,1) nothingVelo), Sp (Sphere "Test2" 1 (-1,0,0) (2,2,2) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)] ("Test","Test2")
+-- >>> let a = [Sp (Sphere "Test" 1 (0,0,0) (1,0,0) nothingVelo), Sp (Sphere "Test2" 1 (-2,0,0) (2,0,0) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)]
 -- >>> a
--- [Sphere Test3 1.0 (2.0,0.0,0.0) (0.0,0.0,0.0),Sphere Test2 1.0 (-1.0,0.0,0.0) (-2.0,-2.0,-2.0),Sphere Test 1.0 (0.0,0.0,0.0) (-1.0,-1.0,-1.0)]
+-- [Sphere Test 1.0 (0.0,0.0,0.0) (1.0,0.0,0.0),Sphere Test2 1.0 (-2.0,0.0,0.0) (2.0,0.0,0.0),Sphere Test3 1.0 (2.0,0.0,0.0) (0.0,0.0,0.0)]
 -- 
 -- >>> resolveCollision a ("Test","Test3")
--- [Sphere Test2 1.0 (-1.0,0.0,0.0) (-2.0,-2.0,-2.0),Sphere Test3 1.0 (2.0,0.0,0.0) (-0.0,-0.0,-0.0),Sphere Test 1.0 (0.0,0.0,0.0) (1.0,1.0,1.0)] 
+-- [Sphere Test2 1.0 (-2.0,0.0,0.0) (2.0,0.0,0.0),Sphere Test3 1.0 (2.0,0.0,0.0) (1.0,0.0,0.0),Sphere Test 1.0 (0.0,0.0,0.0) (0.0,0.0,0.0)]
 
 -- | Get an Sphere from an Env
 -- >>> let s = Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo

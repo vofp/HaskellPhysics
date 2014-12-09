@@ -4,6 +4,7 @@ module Physics where
 
 import Data.List 
 import Data.Maybe
+import qualified Data.Vec3 as V
 
 type AccelFunc    = Double -> AccelVector
 type Setting      = Element -> AccelFunc
@@ -164,28 +165,52 @@ instance Collision Element Element where
 instance Collision Sphere Sphere where
     collision (Sphere _ s1 p1 _ _) (Sphere _ s2 p2 _ _) = magnitude p1 p2 <= s1 + s2
     bounce s1 s2 = (newS1, newS2)
-        where p1         = getPos s1
-              (x1,y1,z1) = getVelo s1
-              p2         = getPos s2
-              (x2,y2,z2) = getVelo s2
-              nx1        = -x1
-              ny1        = -y1
-              nz1        = -z1
-              nx2        = -x2
-              ny2        = -y2
-              nz2        = -z2
-              newS1      = update p1 (nx1,ny1,nz1) s1
-              newS2      = update p2 (nx2,ny2,nz2) s2
+        where x = V.normalize $ (V.TUVec3 (getPos s1)) V.<-> (V.TUVec3 (getPos s2))
+              v1 = V.TUVec3 $ getVelo s1
+              x1 = x V..* v1
+              v1x = x V..^ x1
+              v1y = v1 V.<-> v1x
+              m1 = 4/3* pi * (getSize s1)^3
+              xt = x V..^ (-1)
+              v2 = V.TUVec3 $ getVelo s2
+              x2 = xt V..* v2
+              v2x = xt V..^ x2
+              v2y = v2 V.<-> v2x
+              m2 = 4/3* pi * (getSize s2)^3
+              vel1 = (v1x V..^ ((m1-m2)/(m1+m2))) V.<+> (v2x V..^ ((2*m2)/(m1+m2))) V.<+> v1y
+              vel2 = (v1x V..^ ((2*m1)/(m1+m2))) V.<+> (v2x V..^ ((m2-m1)/(m1+m2))) V.<+> v2y
+              newS1 = update (getPos s1) (V.toXYZ vel1) s1
+              newS2 = update (getPos s2) (V.toXYZ vel2) s2
+              --xt = x V..^ (-1)
+        --where p1         = getPos s1
+        --      (x1,y1,z1) = getVelo s1
+        --      p2         = getPos s2
+        --      (x2,y2,z2) = getVelo s2
+        --      nx1        = -x1
+        --      ny1        = -y1
+        --      nz1        = -z1
+        --      nx2        = -x2
+        --      ny2        = -y2
+        --      nz2        = -z2
+        --      newS1      = update p1 (nx1,ny1,nz1) s1
+        --      newS2      = update p2 (nx2,ny2,nz2) s2
 
 -- | See if Collision happened between a sphere and wall
 instance Collision Sphere Wall where
     collision (Sphere _ s1 (x,y,z) _ _) (Wall _ _ (x0,y0,z0) (a,b,c)) =  (a*x+b*y+c*z+d)/sqrt(a*a+b*b+c*c) <= s1
         where d = -(a*x0+b*y0+c*z0)
-    bounce a b = (a,b)
+    bounce s w = (newS,w)
+        where (Wall _ _ _ p) = w
+              n_vector = V.normalize $ V.TUVec3 p
+              v = V.TUVec3 $ getVelo s
+              reflected = n_vector V.><  (n_vector V.>< v)
+              newVelo = v V.<-> (reflected V..^ 2)
+              newS = update (getPos s) (V.toXYZ newVelo) s
 
 instance Collision Wall Sphere where
     collision w s = collision s w
-    bounce a b = (a,b)
+    bounce w s = (w2,s2)
+      where (s2,w2) = bounce s w
 
 instance Collision Wall Wall where
     collision _ _ = False
@@ -286,10 +311,11 @@ stepTimeEnv st (Env t1 a f) = Env t2 (map (stepTime t1 t2 f) a) f
                           where t2 = t1 + st
 
 -- | Step multiple times
-stepsTimeEnv :: Object a => Int -> Time -> Env a -> Env a
+stepsTimeEnv :: (Collision a a, Eq a, Object a) => Int -> Time -> Env a -> Env a
 stepsTimeEnv 0 t e = e
-stepsTimeEnv n t e = stepsTimeEnv (n-1) t e2
+stepsTimeEnv n t e = stepsTimeEnv (n-1) t e3
                         where e2 = stepTimeEnv t e
+                              e3 = resolveCollisions e2
 
 -- | detect all collisions
 detectCollisions :: (Collision a a, Eq a) => [a] -> Bool
