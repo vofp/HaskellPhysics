@@ -75,7 +75,7 @@ import Physics
 
 -- | Step the time of the Env
 -- >>> let s = Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo
--- >>> let e = Env 0 [s] [gravityVelo]
+-- >>> let e = Env 0 [s] [gravityVelo] []
 -- >>> let e1 = stepTimeEnv 1 e
 -- >>> e1
 -- Env 1.0 [Sphere Test 1.0 (0.0,0.0,4.9) (0.0,0.0,9.8)]
@@ -89,14 +89,14 @@ import Physics
 -- 
 -- >>> let s2 = Sphere "Test2" 1 (2,0,0) (0,0,0) nothingVelo
 -- >>> let w = Wall "Test3" 1 (0,0,0) (1,0,0)
--- >>> let e3 = Env 0 [(Sp s2),(Wa w)] [gravityVelo]
+-- >>> let e3 = Env 0 [(Sp s2),(Wa w)] [gravityVelo] []
 -- >>> let e4 = stepTimeEnv 1 e3
 -- >>> e4
 -- Env 1.0 [Sphere Test2 1.0 (2.0,0.0,4.9) (0.0,0.0,9.8),Wall Test3 1.0 (0.0,0.0,0.0) (1.0,0.0,0.0)]
 
 -- | Step multiple times
 -- >>> let s = Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo
--- >>> let e = Env 0 [s] [gravityVelo]
+-- >>> let e = Env 0 [s] [gravityVelo] []
 -- >>> stepsTimeEnv 1 1 e
 -- Env 1.0 [Sphere Test 1.0 (0.0,0.0,4.9) (0.0,0.0,9.8)]
 -- 
@@ -146,11 +146,11 @@ import Physics
 --
 
 -- | resolve all collisions
--- >>> resolveCollisions (Env 0 [Sp (Sphere "Test" 1 (0,0,0) (-1,0,0) nothingVelo), Sp (Sphere "Test2" 1 (-2,0,0) (1,0,0) nothingVelo), Sp (Sphere "Test3" 1 (5,0,0) (0,0,0) nothingVelo)] [])
+-- >>> resolveCollisions (Env 0 [Sp (Sphere "Test" 1 (0,0,0) (-1,0,0) nothingVelo), Sp (Sphere "Test2" 1 (-2,0,0) (1,0,0) nothingVelo), Sp (Sphere "Test3" 1 (5,0,0) (0,0,0) nothingVelo)] [] [])
 -- Env 0.0 [Sphere Test3 1.0 (5.0,0.0,0.0) (0.0,0.0,0.0),Sphere Test2 1.0 (-2.0,0.0,0.0) (-1.0,0.0,0.0),Sphere Test 1.0 (0.0,0.0,0.0) (1.0,0.0,0.0)]
 -- 
 -- >>> let a = [Sp (Sphere "Test" 1 (0,0,0) (1,0,0) nothingVelo), Sp (Sphere "Test2" 1 (-2,0,0) (2,0,0) nothingVelo), Sp (Sphere "Test3" 1 (2,0,0) (0,0,0) nothingVelo)]
--- >>> let e = (Env 0 a [])
+-- >>> let e = (Env 0 a [] [])
 -- >>> listCollisions a
 -- [("Test","Test2"),("Test","Test3")]
 -- >>> resolveCollisions e
@@ -167,7 +167,7 @@ import Physics
 
 -- | Get an Sphere from an Env
 -- >>> let s = Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo
--- >>> let e = Env 0 [s] [gravityVelo]
+-- >>> let e = Env 0 [s] [gravityVelo] []
 -- >>> getObjName "Test" e
 -- Just Sphere Test 1.0 (0.0,0.0,0.0) (0.0,0.0,0.0)
 -- 

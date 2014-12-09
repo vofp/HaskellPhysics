@@ -18,7 +18,7 @@ type Size         = Double
 type Time         = Double
 type Velocity     = Vector
 
-data Env a  = Env Time [a] [Setting]
+data Env a  = Env Time [a] [Setting] [Log]
 data Log    = LogColSS Time Sphere Sphere
             | LogColSW Time Sphere Wall
 data Sphere = Sphere Name Size Position Velocity AccelFunc
@@ -40,7 +40,7 @@ class Object a where
 
     -- | Pull Object out of Env by name
     getObjName :: Name -> Env a -> Maybe a
-    getObjName s (Env t a _) = getObjNamelist s a
+    getObjName s (Env t a _ _) = getObjNamelist s a
 
     -- | Pull Object out of list by name
     getObjNamelist :: Name -> [a] -> Maybe a
@@ -222,7 +222,7 @@ class Combine a where
     simpleCombine :: a -> a -> a
 
 instance Combine (Env a) where
-    simpleCombine (Env _ a1 f1) (Env _ a2 f2) = Env 0 (a1++a2) (f1++f2)
+    simpleCombine (Env _ a1 f1 l1) (Env _ a2 f2 l2) = Env 0 (a1++a2) (f1++f2) (l1++l2)
 
 instance Combine Sphere where
     simpleCombine (Sphere n1 s1 p1 v1 f1) (Sphere n2 s2 p2 v2 f2) = Sphere n s p v f
@@ -249,7 +249,7 @@ instance Show Element where
     show (Wa w) = show w 
 
 instance Show a => Show (Env a) where
-    show (Env t a _) = "Env " ++ show t ++ " " ++ show a
+    show (Env t a _ _) = "Env " ++ show t ++ " " ++ show a
 
 instance Eq Sphere where
     (Sphere n1 s1 p1 v1 _) == (Sphere n2 s2 p2 v2 _) = n1 == n2 
@@ -281,7 +281,7 @@ instance Ord Sphere where
 
 
 instance Ord a => Eq (Env a) where
-    (Env t a _) == (Env t2 a2 _) = t == t2 && sort a == sort a2
+    (Env t a _ _) == (Env t2 a2 _ _) = t == t2 && sort a == sort a2
 
 -- | Create a basic acceleration function with a vector
 accelFunc :: AccelVector -> AccelFunc
@@ -307,7 +307,7 @@ avg v = foldr (\(a,b,c) (x,y,z) -> (a/l+x,b/l+y,c/l+z)) (0,0,0) v
 
 -- | Step the time of the Env
 stepTimeEnv :: Object a => Time -> Env a -> Env a
-stepTimeEnv st (Env t1 a f) = Env t2 (map (stepTime t1 t2 f) a) f
+stepTimeEnv st (Env t1 a f l) = Env t2 (map (stepTime t1 t2 f) a) f l
                           where t2 = t1 + st
 
 -- | Step multiple times
@@ -327,7 +327,7 @@ listCollisions a = [(s1, s2)| e1 <- a, e2 <- a, e1 /= e2, collision e1 e2, let s
 
 -- | resolve all collisions
 resolveCollisions :: (Collision a a, Eq a, Object a) => Env a -> Env a
-resolveCollisions (Env t a f) = (Env t a2 f)
+resolveCollisions (Env t a f l) = (Env t a2 f l)
   where c  = listCollisions a
         a2 = foldl (resolveCollision) a c
 
