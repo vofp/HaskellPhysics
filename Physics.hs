@@ -339,6 +339,26 @@ resolveCollision a (s1,s2) = a2
         (n1,n2) = bounce o1 o2
         a2 = replaceObj n1 $ replaceObj n2 a
 
+updateLog :: [(String, String)] -> Env a -> [Log] -> [Log]
+updateLog []     e l = l
+updateLog (x:xs) e l = (createLog t a b):l
+    where (s1,s2) = x
+          (Env t _ _ _) = e
+          a = fromJust $ getObjNamelist s1 e
+          b = fromJust $ getObjNamelist s2 e
+
+
+createLog :: Time -> a -> b -> Log
+createLog t (Sphere n1 s1 p1 v1 a1) (Sphere n2 s2 p2 v2 a2) =  LogColSS t (Sphere n1 s1 p1 v1 a1) (Sphere n2 s2 p2 v2 a2)
+createLog t (Sphere n1 s1 p1 v1 a1) (Wall n2 s2 p2 v2)      =  LogColSW t (Sphere n1 s1 p1 v1 a1) (Wall n2 s2 p2 v2)
+createLog t (Wall n2 s2 p2 v2) (Sphere n1 s1 p1 v1 a1)      =  LogColSW t (Sphere n1 s1 p1 v1 a1) (Wall n2 s2 p2 v2)
+
+
+data Log    = LogColSS Time Sphere Sphere
+            | LogColSW Time Sphere Wall
+data Sphere = Sphere Name Size Position Velocity AccelFunc
+data Wall   = Wall Name Size Position NormalVector
+
 -- | Adds object to an array but removes old version
 replaceObj :: Object a => a -> [a] -> [a]
 replaceObj n []     = [n]
