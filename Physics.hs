@@ -145,6 +145,8 @@ class Collision a b where
     -- | Resolve the collision between 2 objects
     bounce :: a -> b -> (a,b)
 
+    createLog :: Time -> a -> b -> [Log]
+
 instance Collision Element Element where
     collision (Sp s1) (Sp s2) = collision s1 s2
     collision (Sp s1) (Wa w2) = collision s1 w2
@@ -159,6 +161,11 @@ instance Collision Element Element where
       where (n1, n2) = bounce s2 w1
     bounce (Wa w1) (Wa w2) = (Wa n1, Wa n2)
       where (n1, n2) = bounce w1 w2
+
+    createLog t (Sp s1) (Sp s2) = createLog t s1 s2
+    createLog t (Sp s1) (Wa w2) = createLog t s1 w2
+    createLog t (Wa w1) (Sp s2) = createLog t s2 w1
+    createLog t (Wa w1) (Wa w2) = createLog t w1 w2
 
 
 -- | See if Collision happened between 2 spheres
@@ -194,6 +201,7 @@ instance Collision Sphere Sphere where
         --      nz2        = -z2
         --      newS1      = update p1 (nx1,ny1,nz1) s1
         --      newS2      = update p2 (nx2,ny2,nz2) s2
+    createLog t s c = [LogColSS t s c]
 
 -- | See if Collision happened between a sphere and wall
 instance Collision Sphere Wall where
@@ -206,15 +214,20 @@ instance Collision Sphere Wall where
               reflected = n_vector V.><  (n_vector V.>< v)
               newVelo = v V.<-> (reflected V..^ 2)
               newS = update (getPos s) (V.toXYZ newVelo) s
+    createLog t s w = [LogColSW t s w]
+
 
 instance Collision Wall Sphere where
     collision w s = collision s w
     bounce w s = (w2,s2)
       where (s2,w2) = bounce s w
+    createLog t w s = [LogColSW t s w]
+
 
 instance Collision Wall Wall where
     collision _ _ = False
     bounce a b = (a,b)
+    createLog _ _ _ = []
 
 
 class Combine a where
@@ -339,25 +352,13 @@ resolveCollision a (s1,s2) = a2
         (n1,n2) = bounce o1 o2
         a2 = replaceObj n1 $ replaceObj n2 a
 
-updateLog :: [(String, String)] -> Env a -> [Log] -> [Log]
+updateLog :: (Collision a a, Object a) => [(String, String)] -> Env a -> [Log] -> [Log]
 updateLog []     e l = l
-updateLog (x:xs) e l = (createLog t a b):l
+updateLog (x:xs) e l = (createLog t a b)++l
     where (s1,s2) = x
           (Env t _ _ _) = e
-          a = fromJust $ getObjNamelist s1 e
-          b = fromJust $ getObjNamelist s2 e
-
-
-createLog :: Time -> a -> b -> Log
-createLog t (Sphere n1 s1 p1 v1 a1) (Sphere n2 s2 p2 v2 a2) =  LogColSS t (Sphere n1 s1 p1 v1 a1) (Sphere n2 s2 p2 v2 a2)
-createLog t (Sphere n1 s1 p1 v1 a1) (Wall n2 s2 p2 v2)      =  LogColSW t (Sphere n1 s1 p1 v1 a1) (Wall n2 s2 p2 v2)
-createLog t (Wall n2 s2 p2 v2) (Sphere n1 s1 p1 v1 a1)      =  LogColSW t (Sphere n1 s1 p1 v1 a1) (Wall n2 s2 p2 v2)
-
-
-data Log    = LogColSS Time Sphere Sphere
-            | LogColSW Time Sphere Wall
-data Sphere = Sphere Name Size Position Velocity AccelFunc
-data Wall   = Wall Name Size Position NormalVector
+          a = fromJust $ getObjName s1 e
+          b = fromJust $ getObjName s2 e
 
 -- | Adds object to an array but removes old version
 replaceObj :: Object a => a -> [a] -> [a]
