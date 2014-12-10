@@ -1,10 +1,14 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}
 
-module Test_Physics where
+module Physics_test where
 
 import Data.List 
 import Data.Maybe 
 import Physics
+import Physics_collisions
+import Physics_types
+import Physics_objects
+import Physics_combine
 
 -- | See if Collision happened between 2 spheres
 -- >>> collision (Sphere "Test" 1 (0,0,0) (0,0,0) nothingVelo) (Sphere "Test2" 1 (1,0,0) (0,0,0) nothingVelo)
