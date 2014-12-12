@@ -29,6 +29,9 @@ import Physics_combine
 -- >>> bounce (Sphere "Test" 1 (0,0,2) (0,0,-1) nothingVelo) (Sphere "Test2" 1 (0,0,0) (0,0,1) nothingVelo)
 -- (Sphere Test 1.0 (0.0,0.0,2.0) (0.0,0.0,1.0),Sphere Test2 1.0 (0.0,0.0,0.0) (0.0,0.0,-1.0))
 --
+-- >>> bounce (Sphere "Test" 1 (1,0,0) (-1,0,0) nothingVelo) (Wall "Test2" 1 (0,0,0) (1,0,0))
+-- (Sphere Test 1.0 (1.0,0.0,0.0) (1.0,0.0,0.0),Wall Test2 1.0 (0.0,0.0,0.0) (1.0,0.0,0.0))
+--
 
 -- | See if Collision happened between a sphere and wall
 -- >>> collision (Sphere "Test" 1 (2,0,0) (0,0,0) nothingVelo) (Wall "Test2" 1 (0,0,0) (1,0,0))

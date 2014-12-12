@@ -14,8 +14,6 @@ class Collision a b where
     -- | Resolve the collision between 2 objects
     bounce :: a -> b -> (a,b)
 
-    createLog :: Time -> a -> b -> [Log]
-
 instance Collision Element Element where
     collision (Sp s1) (Sp s2) = collision s1 s2
     collision (Sp s1) (Wa w2) = collision s1 w2
@@ -30,12 +28,6 @@ instance Collision Element Element where
       where (n1, n2) = bounce s2 w1
     bounce (Wa w1) (Wa w2) = (Wa n1, Wa n2)
       where (n1, n2) = bounce w1 w2
-
-    createLog t (Sp s1) (Sp s2) = createLog t s1 s2
-    createLog t (Sp s1) (Wa w2) = createLog t s1 w2
-    createLog t (Wa w1) (Sp s2) = createLog t s2 w1
-    createLog t (Wa w1) (Wa w2) = createLog t w1 w2
-
 
 -- | See if Collision happened between 2 spheres
 instance Collision Sphere Sphere where
@@ -57,20 +49,7 @@ instance Collision Sphere Sphere where
               vel2 = (v1x V..^ ((2*m1)/(m1+m2))) V.<+> (v2x V..^ ((m2-m1)/(m1+m2))) V.<+> v2y
               newS1 = update (getPos s1) (V.toXYZ vel1) s1
               newS2 = update (getPos s2) (V.toXYZ vel2) s2
-              --xt = x V..^ (-1)
-        --where p1         = getPos s1
-        --      (x1,y1,z1) = getVelo s1
-        --      p2         = getPos s2
-        --      (x2,y2,z2) = getVelo s2
-        --      nx1        = -x1
-        --      ny1        = -y1
-        --      nz1        = -z1
-        --      nx2        = -x2
-        --      ny2        = -y2
-        --      nz2        = -z2
-        --      newS1      = update p1 (nx1,ny1,nz1) s1
-        --      newS2      = update p2 (nx2,ny2,nz2) s2
-    createLog t s c = [LogColSS t s c]
+
 
 -- | See if Collision happened between a sphere and wall
 instance Collision Sphere Wall where
@@ -83,17 +62,12 @@ instance Collision Sphere Wall where
               reflected = n_vector V.><  (n_vector V.>< v)
               newVelo = v V.<-> (reflected V..^ 2)
               newS = update (getPos s) (V.toXYZ newVelo) s
-    createLog t s w = [LogColSW t s w]
-
 
 instance Collision Wall Sphere where
     collision w s = collision s w
     bounce w s = (w2,s2)
       where (s2,w2) = bounce s w
-    createLog t w s = [LogColSW t s w]
-
 
 instance Collision Wall Wall where
     collision _ _ = False
     bounce a b = (a,b)
-    createLog _ _ _ = []

@@ -49,8 +49,9 @@ listCollisions a = [(s1, s2)| e1 <- a, e2 <- a, e1 /= e2, collision e1 e2, let s
 
 -- | resolve all collisions
 resolveCollisions :: (Collision a a, Eq a, Object a) => Env a -> Env a
-resolveCollisions (Env t a f l) = (Env t a2 f l)
+resolveCollisions (Env t a f l) = (Env t a2 f l2)
   where c  = listCollisions a
+        l2 = updateLog c (Env t a f l) l 
         a2 = foldl (resolveCollision) a c
 
 -- | Resolve a Collision
@@ -61,9 +62,9 @@ resolveCollision a (s1,s2) = a2
         (n1,n2) = bounce o1 o2
         a2 = replaceObj n1 $ replaceObj n2 a
 
-updateLog :: (Collision a a, Object a) => [(String, String)] -> Env a -> [Log] -> [Log]
+updateLog :: (Collision a a, Object a) => [(String, String)] -> Env a -> [Log a] -> [Log a]
 updateLog []     e l = l
-updateLog (x:xs) e l = (createLog t a b)++l
+updateLog (x:xs) e l = (LogCol t a b):l
     where (s1,s2) = x
           (Env t _ _ _) = e
           a = fromJust $ getObjName s1 e
